@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <strings.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <unistd.h>
 
@@ -13,11 +15,13 @@
 
 #define PORT 8080
 
+
 typedef struct
 {
 	struct sockaddr_in addr;
 	int32_t socket;
 } Socket;
+
 
 int opensocket(Socket *newsocket)
 {
@@ -44,6 +48,30 @@ int opensocket(Socket *newsocket)
 }
 
 
+int connecttoapache(uint32_t port, Socket *redirect)
+{
+	redirect->socket = socket(AF_INET, SOCK_STREAM, 0);
+	if (redirect->socket  == -1)
+	{
+		perror("Couldnt create redirect socket");
+		return 1;
+	}
+
+	bzero(&(redirect->addr), sizeof(redirect->addr));
+	redirect->addr.sin_family = AF_INET;
+	redirect->addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+	redirect->addr.sin_port = htons(port);
+
+	if (connect(redirect->socket, (struct sockaddr *)&redirect->addr, sizeof(redirect->addr)) != 0)
+	{
+		perror("Connection failed");
+		return 1;
+	}
+
+	return 0;
+}
+
+
 int main(void)
 {
 	Socket serversocket;
@@ -51,46 +79,24 @@ int main(void)
 		return 1;	
 
 	listen(serversocket.socket, 5);
-	int clientsocket = accept(serversocket.socket, nullptr, nullptr);
+
+	int clientsocket = accept(serversocket.socket, NULL, NULL);
 	
 	// Read the first request
 	char buffer[1024] = {0};
 	recv(clientsocket, buffer, sizeof(buffer), 0);
 	printf("Message %s\n", buffer);
+	
+	// Establish a connection to apache
+	Socket redirectsocket;
+	connecttoapache(80, &redirectsocket);
 
-	// Send a custom msg to the client
-	/* 
-	char *response = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n<html>\n<head>\n<title>It works! Apache httpd</title>\n</head>\n<body>\n<p>It works!</p>\n</body>\n</html>\n";
-
-	send(clientsocket, response, strlen(response), 0);
-	*/
-
-	struct sockaddr_in apaddr, cli;
-
-	int32_t redirectsocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (redirectsocket  == -1)
-	{
-		perror("Couldnt create redirect socket");
-		return 1;
-	}
-
-	bzero(&apaddr, sizeof(apaddr));
-	apaddr.sin_family = AF_INET;
-	apaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	apaddr.sin_port = htons(80);
-
-	if (connect(redirectsocket, (struct sockaddr *)&apaddr, sizeof(apaddr)) != 0)
-	{
-		perror("Connection failed");
-		return 1;
-	}
-
-	send(redirectsocket, buffer, strlen(buffer), 0);
-	recv(redirectsocket, buffer, sizeof(buffer), 0);
+	send(redirectsocket.socket, buffer, strlen(buffer), 0);
+	recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
 	send(clientsocket, buffer, strlen(buffer), 0);
 
 	close(clientsocket);
-	close(redirectsocket);
+	close(redirectsocket.socket);
 	close(serversocket.socket);
 
 	return 0;
