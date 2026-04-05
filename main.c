@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <strings.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -74,27 +73,32 @@ int connecttoapache(uint32_t port, Socket *redirect)
 
 int main(void)
 {
-	Socket serversocket;
+	int clientsocket;
+	Socket serversocket, redirectsocket;
 	if (opensocket(&serversocket) == 1)
 		return 1;	
 
 	listen(serversocket.socket, 5);
 
-	int clientsocket = accept(serversocket.socket, NULL, NULL);
-	
-	// Read the first request
-	char buffer[1024] = {0};
-	recv(clientsocket, buffer, sizeof(buffer), 0);
-	printf("Message %s\n", buffer);
-	
-	// Establish a connection to apache
-	Socket redirectsocket;
-	connecttoapache(80, &redirectsocket);
+	while (1)
+	{
+		clientsocket = accept(serversocket.socket, NULL, NULL);
+		
+		// Read the first request
+		char buffer[1024] = {0};
+		recv(clientsocket, buffer, sizeof(buffer), 0);
+		printf("%s\n", buffer);
+		
+		// Establish a connection to apache
+		connecttoapache(80, &redirectsocket);  // TODO: this is the socket that should randomly change
 
-	send(redirectsocket.socket, buffer, strlen(buffer), 0);
-	recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
-	send(clientsocket, buffer, strlen(buffer), 0);
+		// Send the packets back to the client
+		send(redirectsocket.socket, buffer, strlen(buffer), 0);
+		recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
+		send(clientsocket, buffer, strlen(buffer), 0);
+	}
 
+	// Close sockets
 	close(clientsocket);
 	close(redirectsocket.socket);
 	close(serversocket.socket);
