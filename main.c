@@ -18,7 +18,7 @@
 typedef struct
 {
 	struct sockaddr_in addr;
-	int32_t socket;
+	int32_t socket, opt;
 } Socket;
 
 
@@ -28,6 +28,14 @@ int opensocket(Socket *newsocket)
 	if (newsocket->socket == -1)
 	{
 		perror("Error openning socket");
+		return 1;
+	}
+
+	int32_t options = SO_REUSEADDR | SO_REUSEPORT | SO_KEEPALIVE; 
+	int32_t optres = setsockopt(newsocket->socket, SOL_SOCKET, options, &newsocket->opt, sizeof(newsocket->opt));
+	if (optres != 0)
+	{
+		perror("couldnt setsockopt");
 		return 1;
 	}
 
@@ -50,7 +58,7 @@ int opensocket(Socket *newsocket)
 int connecttoapache(uint32_t port, Socket *redirect)
 {
 	redirect->socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (redirect->socket  == -1)
+	if (redirect->socket == -1)
 	{
 		perror("Couldnt create redirect socket");
 		return 1;
@@ -70,38 +78,63 @@ int connecttoapache(uint32_t port, Socket *redirect)
 	return 0;
 }
 
+void closesockets(int32_t *sockets, int32_t socketcount)
+{
+	for (int32_t i = 0; i < socketcount; i++)
+	{
+		close(sockets[i]);
+	}
+}
+
 
 int main(void)
 {
-	int clientsocket;
+	int32_t clientsocket;
 	Socket serversocket, redirectsocket;
 	if (opensocket(&serversocket) == 1)
 		return 1;	
 
 	listen(serversocket.socket, 5);
-
-	while (1)
+		
+	clientsocket = accept(serversocket.socket, NULL, NULL);
+	if (clientsocket == -1)
 	{
-		clientsocket = accept(serversocket.socket, NULL, NULL);
+		perror("Error connecting to client");
+		closesockets((int []){serversocket.socket, clientsocket, redirectsocket.socket}, 3);
+		return 1;
+	}
+
+	// Establish a connection to apache
+	int32_t res = connecttoapache(8000, &redirectsocket);
+	if (res != 0)
+	{
+		perror("Couldnt connect to apache");
+		closesockets((int []){serversocket.socket, redirectsocket.socket}, 2);
+		return 1;
+	}
+
+
+
+	int recvres = 0;
+	while (recvres != -1)
+	{
 		
-		// Read the first request
-		char buffer[1024] = {0};
-		recv(clientsocket, buffer, sizeof(buffer), 0);
-		printf("%s\n", buffer);
-		
-		// Establish a connection to apache
-		connecttoapache(80, &redirectsocket);  // TODO: this is the socket that should randomly change
+		// Read the request from the client
+		char buffer[8192] = {0};
+		recvres = recv(clientsocket, buffer, sizeof(buffer), 0);
+		if (recvres == 0)
+			continue;
+		printf("message:\n%s\n", buffer);
 
 		// Send the packets back to the client
 		send(redirectsocket.socket, buffer, strlen(buffer), 0);
 		recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
+		printf("messga from redirect:\n%s\n", buffer);
 		send(clientsocket, buffer, strlen(buffer), 0);
+		
 	}
 
-	// Close sockets
-	close(clientsocket);
-	close(redirectsocket.socket);
-	close(serversocket.socket);
+	closesockets((int []){serversocket.socket, clientsocket, redirectsocket.socket}, 3);
 
 	return 0;
 }
