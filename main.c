@@ -94,7 +94,8 @@ int main(void)
 	if (opensocket(&serversocket) == 1)
 		return 1;	
 
-	listen(serversocket.socket, 5);
+	if (listen(serversocket.socket, 5) != 0)
+		return 1;
 		
 	clientsocket = accept(serversocket.socket, NULL, NULL);
 	if (clientsocket == -1)
