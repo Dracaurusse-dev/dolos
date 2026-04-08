@@ -82,7 +82,9 @@ void closesockets(int32_t *sockets, int32_t socketcount)
 {
 	for (int32_t i = 0; i < socketcount; i++)
 	{
-		close(sockets[i]);
+		int32_t r = close(sockets[i]);
+		if (r != 0)
+			fprintf(stderr, "socket %d couldnt close", i);
 	}
 }
 
@@ -97,28 +99,25 @@ int main(void)
 	if (listen(serversocket.socket, 5) != 0)
 		return 1;
 		
-	clientsocket = accept(serversocket.socket, NULL, NULL);
-	if (clientsocket == -1)
-	{
-		perror("Error connecting to client");
-		closesockets((int []){serversocket.socket, clientsocket, redirectsocket.socket}, 3);
-		return 1;
-	}
-
-	// Establish a connection to apache
-	int32_t res = connecttoapache(8000, &redirectsocket);
-	if (res != 0)
-	{
-		perror("Couldnt connect to apache");
-		closesockets((int []){serversocket.socket, redirectsocket.socket}, 2);
-		return 1;
-	}
-
-
-
 	int recvres = 0;
 	while (recvres != -1)
 	{
+		clientsocket = accept(serversocket.socket, NULL, NULL);
+		if (clientsocket == -1)
+		{
+			perror("Error connecting to client");
+			closesockets((int []){serversocket.socket, clientsocket, redirectsocket.socket}, 3);
+			return 1;
+		}
+
+		// Establish a connection to apache
+		int32_t res = connecttoapache(8000, &redirectsocket);
+		if (res != 0)
+		{
+			perror("Couldnt connect to apache");
+			closesockets((int []){serversocket.socket, redirectsocket.socket}, 2);
+			return 1;
+		}
 		
 		// Read the request from the client
 		char buffer[8192] = {0};
