@@ -91,7 +91,7 @@ void closesockets(int32_t *sockets, int32_t socketcount)
 
 int main(void)
 {
-	int32_t clientsocket;
+	int32_t clientsocket, errorcode;
 	Socket serversocket, redirectsocket;
 	if (opensocket(&serversocket) == 1)
 		return 1;	
@@ -106,8 +106,8 @@ int main(void)
 		if (clientsocket == -1)
 		{
 			perror("Error connecting to client");
-			closesockets((int []){serversocket.socket, clientsocket, redirectsocket.socket}, 3);
-			return 1;
+			errorcode=1;
+			break;
 		}
 
 		// Establish a connection to apache
@@ -115,27 +115,60 @@ int main(void)
 		if (res != 0)
 		{
 			perror("Couldnt connect to apache");
-			closesockets((int []){serversocket.socket, redirectsocket.socket}, 2);
-			return 1;
+			errorcode=1;
+			break;
 		}
 		
 		// Read the request from the client
-		char buffer[8192] = {0};
+		char buffer[65535] = {0};
 		recvres = recv(clientsocket, buffer, sizeof(buffer), 0);
 		if (recvres == 0)
 			continue;
-		printf("message:\n%s\n", buffer);
+		if (recvres == -1)
+		{
+			perror("Couldnt receive client's request");
+			errorcode=1;
+			break;
+		}
+		printf("message from client:\n%s\n", buffer);
 
-		// Send the packets back to the client
-		send(redirectsocket.socket, buffer, strlen(buffer), 0);
-		recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
-		printf("messga from redirect:\n%s\n", buffer);
+		// Send the packet to the server
+		int32_t sendres = send(redirectsocket.socket, buffer, strlen(buffer), 0);
+		if (sendres == 0)
+			continue;
+		if (sendres == -1)
+		{
+			perror("Couldnt send to server with redirectsocket");
+			errorcode=1;
+			break;
+		}
+
+		// Receive the reply and send it to the client
+		recvres = recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
+		if (recvres == 0)
+			continue;
+		if (recvres == -1)
+		{
+			perror("Couldnt receive server's answer");
+			errorcode=1;
+			break;
+		}
+		printf("message from redirect:\n%s\n", buffer);
+
 		send(clientsocket, buffer, strlen(buffer), 0);
+		if (sendres == 0)
+			continue;
+		if (sendres == -1)
+		{
+			perror("Couldnt send to client with clientsocket");
+			errorcode=1;
+			break;
+		}
 		
 	}
 
 	closesockets((int []){serversocket.socket, clientsocket, redirectsocket.socket}, 3);
 
-	return 0;
+	return errorcode;
 }
 
