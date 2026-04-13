@@ -14,12 +14,13 @@
 
 #define PORT 8080
 #define WEBSITE_PORT 8000
-#define BUFFER_SIZE 1046576
+#define BUFFER_SIZE 4096
 #define MAX_SOCKET_CONN 5
 
-
-typedef struct
-{
+// TODO: macro pour fermer les socket et free le buffer
+// TODO: le buffer il faut le malloc au début du while (dedans) et realloc régulièrement, en gros je pense while recv(socket, buffer, strlen(buffer) != 0 do smth je sais pas trop
+// TODO: quand on créer un socket (ou alloue la mémoire pour le buffer) on define une variable et dans la macro on fait genre ifdef VARIABLE_SET free ou close et undefine VARIABLE_SET (jsp si c'est undefine) 
+typedef struct {
 	struct sockaddr_in addr;
 	int32_t socket, opt;
 } Socket;
@@ -84,28 +85,92 @@ int connecttoapache(uint32_t port, Socket *redirect)
 }
 
 
-void closesockets(int32_t *sockets, int32_t socketcount)
+void closesockets()
 {
+	#ifdef PROXY_SOCKET
+		close(PROXY_SOCKET);
+		#undef PROXY_SOCKET
+	#endif
+
+	#ifdef CLIENT_SOCKET
+		close(CLIENT_SOCKET);
+		#undef CLIENT_SOCKET
+	#endif
+
+	#ifdef REDIRECT_SOCKET
+		close(REDIRECT_SOCKET);
+		#undef REDIRECT_SOCKET
+	#endif
+
+	#ifdef RECV_BUFFER 
+		printf("Free buffer");
+		free(RECV_BUFFER);
+		#undef RECV_BUFFER
+	#endif
+	/*
 	for (int32_t i = 0; i < socketcount; i++)
 	{
 		int32_t r = close(sockets[i]);
 		if (r != 0)
 			fprintf(stderr, "socket %d couldnt close", i);
+	}*/
+
+	//TODO: check later if it correctly works, it should but im unsure
+}
+
+
+char *longrecv(int32_t socket, ssize_t *lengthoutput)
+{
+	ssize_t length = BUFFER_SIZE;
+	ssize_t res;
+	char *buf = (char *)malloc(length);
+	*lengthoutput=0;
+	uint16_t incrementamnt = 1024;
+	
+	do 
+	{
+		res = recv(socket, buf, length, MSG_PEEK);
+		if (res == -1)
+		{
+			perror("couldnt read the message");
+			return NULL;
+		}
+
+		length += incrementamnt;
+		buf = realloc(buf, length);
+
+		if (buf == NULL)
+		{
+			perror("Couldn't realloc buf");
+			return NULL;
+		}
 	}
+	while (res >= length-incrementamnt);
+
+	buf = realloc(buf, length);
+	*lengthoutput = recv(socket, buf, length, 0);
+
+	printf("lengthoutput %ld\n", *lengthoutput);
+	return buf;
 }
 
 
 int main(void)
 {
-	char buffer[BUFFER_SIZE];
-	int32_t clientsocket, errorcode;
+	int32_t clientsocket;
 	Socket proxysocket, redirectsocket;
-	if (opensocket(&proxysocket) == 1)
-		return 1;	
+
+	int32_t openres = opensocket(&proxysocket);
+	#define PROXY_SOCKET proxysocket.socket
+	if (openres == 1)
+	{
+		closesockets();
+		return 1;
+	}
 
 	if (listen(proxysocket.socket, MAX_SOCKET_CONN) < 0)
 	{
-		close(proxysocket.socket);
+		closesockets();
 		return 1;
 	}
 
@@ -115,9 +180,9 @@ int main(void)
 		if (clientsocket == -1)
 		{
 			perror("Error connecting to client");
-			errorcode=1;
 			close(clientsocket);
-			break;
+			close(proxysocket.socket);
+			return 1;
 		}
 
 		// Establish a connection to apache
@@ -125,68 +190,70 @@ int main(void)
 		if (res != 0)
 		{
 			perror("Couldnt connect to apache");
-			errorcode=1;
+			close(clientsocket);
+			close(proxysocket.socket);
+			close(redirectsocket.socket);
+			return 1;
+		}
+
+		// Read the request from the client	
+		ssize_t buflen;
+		char *buf = longrecv(clientsocket, &buflen);
+		if (buf == NULL)
+		{
 			close(clientsocket);
 			close(redirectsocket.socket);
-			break;
+			close(proxysocket.socket);
+			free(buf);
+			return 1;
 		}
-
-		// Read the request from the client
-		int32_t bytes_read = recv(clientsocket, buffer, BUFFER_SIZE, 0);
-		if (bytes_read == 0)
-			continue;
-		if (bytes_read == -1)
-		{
-			perror("Couldnt receive client's request");
-			errorcode=1;
-			break;
-		}
-		if (bytes_read == BUFFER_SIZE)
-			printf("alot of bytes");
-		printf("message from client:\n%s\n", buffer);
+		printf("client message: \n%s\n", buf);
 
 		// Send the packet to the server
-		int32_t sendres = send(redirectsocket.socket, buffer, bytes_read, 0);
-		if (sendres == 0)
-			continue;
+		int32_t sendres = send(redirectsocket.socket, buf, buflen, 0);
 		if (sendres == -1)
 		{
 			perror("Couldnt send to server with redirectsocket");
-			errorcode=1;
-			break;
+			close(clientsocket);
+			close(redirectsocket.socket);
+			close(proxysocket.socket);
+			free(buf);
+			return 1;
 		}
 
 		// Receive the reply and send it to the client
-		bytes_read = recv(redirectsocket.socket, buffer, sizeof(buffer), 0);
-		if (bytes_read == 0)
-			continue;
-		if (bytes_read == -1)
+		buf = longrecv(redirectsocket.socket, &buflen);
+		if (buf == NULL)
 		{
-			perror("Couldnt receive server's answer");
-			errorcode=1;
-			break;
+			close(clientsocket);
+			close(redirectsocket.socket);
+			close(proxysocket.socket);
+			free(buf);
+			return 1;
 		}
-		if (bytes_read == BUFFER_SIZE)
-			printf("alot of bytes");
-		printf("message from redirect:\n%s\n", buffer);
+		printf("redirect msg: \n%s\n", buf);
 
-		send(clientsocket, buffer, bytes_read, 0);
-		if (sendres == 0)
-			continue;
+		send(clientsocket, buf, buflen, 0);
 		if (sendres == -1)
 		{
 			perror("Couldnt send to client with clientsocket");
-			errorcode=1;
-			break;
+			close(clientsocket);
+			close(redirectsocket.socket);
+			close(proxysocket.socket);
+			free(buf);
+			return 1;
 		}
 
 		close(clientsocket);
 		close(redirectsocket.socket);
-		
+		free(buf);
 	}
 	
-	closesockets((int []){proxysocket.socket, clientsocket, redirectsocket.socket}, 3);
+	//closesockets();
+	close(clientsocket);
+	close(redirectsocket.socket);
+	close(proxysocket.socket);
 
-	return errorcode;
+	return 0;
 }
 
