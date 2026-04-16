@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 #include <unistd.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -17,9 +16,6 @@
 #define BUFFER_SIZE 4096
 #define MAX_SOCKET_CONN 5
 
-// TODO: macro pour fermer les socket et free le buffer
-// TODO: le buffer il faut le malloc au début du while (dedans) et realloc régulièrement, en gros je pense while recv(socket, buffer, strlen(buffer) != 0 do smth je sais pas trop
-// TODO: quand on créer un socket (ou alloue la mémoire pour le buffer) on define une variable et dans la macro on fait genre ifdef VARIABLE_SET free ou close et undefine VARIABLE_SET (jsp si c'est undefine) 
 typedef struct {
 	struct sockaddr_in addr;
 	int32_t socket, opt;
@@ -85,38 +81,17 @@ int connecttoapache(uint32_t port, Socket *redirect)
 }
 
 
-void closesockets()
+void clean(int32_t proxysocket, int32_t redirectsocket, int32_t clientsocket, char *buf)
 {
-	#ifdef PROXY_SOCKET
-		close(PROXY_SOCKET);
-		#undef PROXY_SOCKET
-	#endif
-
-	#ifdef CLIENT_SOCKET
-		close(CLIENT_SOCKET);
-		#undef CLIENT_SOCKET
-	#endif
-
-	#ifdef REDIRECT_SOCKET
-		close(REDIRECT_SOCKET);
-		#undef REDIRECT_SOCKET
-	#endif
-
-	#ifdef RECV_BUFFER 
-		printf("Free buffer");
-		free(RECV_BUFFER);
-		#undef RECV_BUFFER
-	#endif
-	/*
-	for (int32_t i = 0; i < socketcount; i++)
-	{
-		int32_t r = close(sockets[i]);
-		if (r != 0)
-			fprintf(stderr, "socket %d couldnt close", i);
-	}*/
-
-	//TODO: check later if it correctly works, it should but im unsure
-}
+	if (proxysocket != -1)
+		close(proxysocket);
+	if (redirectsocket != -1)
+		close(redirectsocket);
+	if (clientsocket != -1)
+		close(clientsocket);
+	
+	free(buf);
+}	
 
 
 char *longrecv(int32_t socket, ssize_t *lengthoutput)
@@ -160,17 +135,16 @@ int main(void)
 	int32_t clientsocket;
 	Socket proxysocket, redirectsocket;
 
-	int32_t openres = opensocket(&proxysocket);
-	#define PROXY_SOCKET proxysocket.socket
+	int32_t openres = opensocket(&proxysocket);	
 	if (openres == 1)
 	{
-		closesockets();
+		clean(proxysocket.socket, -1, -1, NULL);
 		return 1;
 	}
 
 	if (listen(proxysocket.socket, MAX_SOCKET_CONN) < 0)
 	{
-		closesockets();
+		clean(proxysocket.socket, -1, -1, NULL);
 		return 1;
 	}
 
@@ -180,8 +154,7 @@ int main(void)
 		if (clientsocket == -1)
 		{
 			perror("Error connecting to client");
-			close(clientsocket);
-			close(proxysocket.socket);
+			clean(proxysocket.socket, -1, clientsocket, NULL);
 			return 1;
 		}
 
@@ -190,9 +163,7 @@ int main(void)
 		if (res != 0)
 		{
 			perror("Couldnt connect to apache");
-			close(clientsocket);
-			close(proxysocket.socket);
-			close(redirectsocket.socket);
+			clean(proxysocket.socket, redirectsocket.socket, clientsocket, NULL);
 			return 1;
 		}
 
@@ -201,10 +172,7 @@ int main(void)
 		char *buf = longrecv(clientsocket, &buflen);
 		if (buf == NULL)
 		{
-			close(clientsocket);
-			close(redirectsocket.socket);
-			close(proxysocket.socket);
-			free(buf);
+			clean(proxysocket.socket, redirectsocket.socket, clientsocket, buf);
 			return 1;
 		}
 		printf("client message: \n%s\n", buf);
@@ -214,10 +182,7 @@ int main(void)
 		if (sendres == -1)
 		{
 			perror("Couldnt send to server with redirectsocket");
-			close(clientsocket);
-			close(redirectsocket.socket);
-			close(proxysocket.socket);
-			free(buf);
+			clean(proxysocket.socket, redirectsocket.socket, clientsocket, buf);
 			return 1;
 		}
 
@@ -225,10 +190,7 @@ int main(void)
 		buf = longrecv(redirectsocket.socket, &buflen);
 		if (buf == NULL)
 		{
-			close(clientsocket);
-			close(redirectsocket.socket);
-			close(proxysocket.socket);
-			free(buf);
+			clean(proxysocket.socket, redirectsocket.socket, clientsocket, buf);
 			return 1;
 		}
 		printf("redirect msg: \n%s\n", buf);
@@ -237,21 +199,13 @@ int main(void)
 		if (sendres == -1)
 		{
 			perror("Couldnt send to client with clientsocket");
-			close(clientsocket);
-			close(redirectsocket.socket);
-			close(proxysocket.socket);
-			free(buf);
+			clean(proxysocket.socket, redirectsocket.socket, clientsocket, buf);
 			return 1;
 		}
 
-		close(clientsocket);
-		close(redirectsocket.socket);
-		free(buf);
+		clean(-1, redirectsocket.socket, clientsocket, buf);
 	}
 	
-	//closesockets();
-	close(clientsocket);
-	close(redirectsocket.socket);
 	close(proxysocket.socket);
 
 	return 0;
