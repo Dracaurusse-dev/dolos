@@ -2,8 +2,8 @@ CFLAGS= -Wall -Wextra -Werror
 
 all: proxy daemon
 
-proxy: bin/connect.o bin/dolos-proxy.o src/connect.h
-	gcc -o bin/dolos-proxy bin/connect.o bin/dolos-proxy.o src/connect.h ${CFLAGS}
+proxy: bin/connect.o bin/dolos-proxy.o src/connect.h bin/stringutils.o
+	gcc -o bin/dolos-proxy bin/connect.o bin/dolos-proxy.o src/connect.h bin/stringutils.o src/stringutils.h ${CFLAGS}
 
 daemon: bin/dolosd.o bin/stringutils.o src/stringutils.h
 	gcc -o bin/dolosd bin/dolosd.o bin/stringutils.o src/stringutils.h ${CFLAGS}
