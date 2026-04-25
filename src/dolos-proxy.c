@@ -13,10 +13,15 @@
 #include <arpa/inet.h>
 
 
-#define PORT 8080
-#define WEBSITE_PORT 8000
-#define BUFFER_SIZE 4096
-#define MAX_SOCKET_CONN 5
+#define DEFAULT_PORT 		8080
+#define WEBSITE_DEFAULT_PORT 	80
+#define REDIRECT_DEFAULT_PORT	8000
+#define BUFFER_SIZE 		4096
+#define MAX_SOCKET_CONN 	5
+
+#define PARSED_SUCCESSFULLY 	1
+#define NO_ARGS_PASSED 		2
+#define INVALID_ARG		4
 
 
 char *longrecv(int32_t socket, ssize_t *lengthoutput)
@@ -55,12 +60,68 @@ char *longrecv(int32_t socket, ssize_t *lengthoutput)
 }
 
 
-int main(void)
+void parseargs(int argc, char **argv)
 {
+	/*
+	 * Return values:
+	 * 	0: Parsed successfully
+	 * 	1: No args passed, should use default values
+	 *	2: 	
+	 */
+	if (argc == 1)
+	{
+		puts("no argument passed, using default values");
+		return NO_ARGS_PASSED;
+	}
+
+	uint8_t isvalue = 0;
+
+	for (int i = 1; i < argc; i++)
+	{
+		if (isvalue)
+		{
+			isvalue = 0;
+			continue;
+		}
+		
+		char arg;
+
+		if (argv[i][0] == '-')
+		{
+			isvalue = 1;
+
+			if (argv[i][1] == 0 || argv[i][0] == '\n')
+			{
+				fprintf(stderr, "Invalid arguement after '-': %s", argv[i]);
+				return INVALID_ARG;
+			}
+
+			arg = argv[i][1];
+		}
+
+		if (argv[i][0] != '-')
+		{
+			arg = argv[i][0];
+		}
+
+
+
+	}
+
+	return PARSED_SUCCESSFULLY;
+}
+
+
+int main(int argc, char **argv)
+{
+	uint16_t port, website_port;
+	uint8_t max_sock_conn;
 	int32_t clientsocket;
 	Socket proxysocket, redirectsocket;
 
-	int32_t openres = opensocket(&proxysocket, PORT, MAX_SOCKET_CONN);
+	parseargs(argc, argv);
+
+	int32_t openres = opensocket(&proxysocket, DEFAULT_PORT, MAX_SOCKET_CONN);
 	if (openres == 1)
 	{
 		perror("Couldn't open the socket");
@@ -75,7 +136,7 @@ int main(void)
 			break;
 		}
 
-		int32_t res = connecttoapache(WEBSITE_PORT, &redirectsocket);
+		int32_t res = connecttoapache(WEBSITE_DEFAULT_PORT, &redirectsocket);
 		if (res != 0)
 		{
 			perror("Couldnt connect to apache");
