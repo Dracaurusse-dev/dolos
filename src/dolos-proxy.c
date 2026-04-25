@@ -60,7 +60,7 @@ int main(void)
 	int32_t clientsocket;
 	Socket proxysocket, redirectsocket;
 
-	int32_t openres = opensocket(&proxysocket, PORT);	
+	int32_t openres = opensocket(&proxysocket, PORT, MAX_SOCKET_CONN);
 	if (openres == 1)
 	{
 		perror("Couldn't open the socket");
@@ -69,7 +69,7 @@ int main(void)
 
 	while (1)
 	{
-		clientsocket = connectclient();
+		clientsocket = connectclient(proxysocket.socket);
 		if (clientsocket == -1)
 		{
 			break;

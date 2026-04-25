@@ -78,11 +78,11 @@ int32_t connecttoapache(uint32_t port, Socket *redirect)
 
 int32_t connectclient(int32_t proxysocket)
 {
-	clientsocket = accept(proxysocket, NULL, NULL);
+	int32_t clientsocket = accept(proxysocket, NULL, NULL);
 	if (clientsocket == -1)
 	{
 		perror("Error connecting to client");
-		clean(proxysocket.socket, -1, clientsocket, NULL);
+		clean(proxysocket, -1, clientsocket, NULL);
 		return -1;
 	}
 
