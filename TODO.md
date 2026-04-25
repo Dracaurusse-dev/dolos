@@ -1,0 +1,4 @@
+- Test argument parsing (run the proxy with every arguments)
+- Read the header and if the request is a GET (or get index or whatever it is, if the client wants the page and can be redirected from that) do the chance thing to maybe redirect it to the other website
+- Add a github wiki or a doc or smth (see other github wikis) and a manpage maybe
+- change longrecv: read the header to know the size of the file in bytes and allocate enough bytes
