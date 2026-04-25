@@ -163,6 +163,19 @@ char *removecomments(char *s, const char c)
 }
 
 
+uint8_t strtou8(char *s)
+{
+	char *c;
+	for (c = s; *c; c++)
+	{
+		if (!isdigit(*c))
+			return 0L;
+	}
+
+	return (uint8_t) strtoul(s, 0L, 10);
+}
+
+
 uint16_t strtou16(char *s)
 {
 	char *c;

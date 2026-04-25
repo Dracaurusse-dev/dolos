@@ -14,6 +14,8 @@
 char *cutstr(char *buf, char startchar, char endchar, uint8_t opts);
 char *trimspaces(char *s);
 char *removecomments(char *s, const char c);
+
+uint8_t strtou8(char *);
 uint16_t strtou16(char *s);
 
 
