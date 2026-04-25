@@ -14,5 +14,5 @@ the proxy's args are:
 -c: maximum socket connection (default to 5) \
 -t: target ip (default to \*) (not implemented yet but will only redirect packets from the target) \
 -T: chance type (default to count, % not implemented yet) \
--V: chance value (default to 100, not implemented yet) \
+-V: chance value (default to 100, not implemented yet)
 
