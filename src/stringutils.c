@@ -6,22 +6,6 @@
 #include <string.h>
 
 
-char *firstnchars(const char *src, size_t srcsize, size_t dstsize)
-{
-	if (dstsize == 0)
-		return NULL;
-
-	char *dst = (char *)malloc(dstsize);
-	char *tmp = (char *)malloc(srcsize * sizeof(*src));
-
-	strcpy(tmp, src);
-	tmp[dstsize] = 0;
-	strcpy(dst, tmp);
-
-	return dst;
-}
-
-
 char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 {
 	/*

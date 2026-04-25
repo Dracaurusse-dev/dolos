@@ -12,8 +12,8 @@
 int main(void)
 {
 	char *ip_redirect;
-	//uint8_t chance_type;
-	//uint16_t chance_value;
+	char *chance_type;
+	uint16_t chance_value;
 
 	FILE *fp = fopen("/etc/dolos.conf", "r");
 	if (fp == NULL)
@@ -34,7 +34,7 @@ int main(void)
 		}
 
 		
-		if (strcmp(firstnchars(buffer, strlen(buffer), 4), "bind") == 0)
+		if (strncmp(buffer, "bind", strlen("bind")) == 0)
 		{
 			char *ports = cutstr(buffer, ' ', '\n', XCLUDE_END | XCLUDE_START);
 
@@ -59,11 +59,26 @@ int main(void)
 			continue;
 		}
 
-		if (strcmp(firstnchars(buffer, strlen(buffer), strlen("ip_redirect")), "ip_redirect") == 0)
+		if (strncmp(buffer, "ip_redirect", strlen("ip_redirect") * sizeof(char)) == 0)
 		{
 			ip_redirect = cutstr(buffer, '=', '\n', XCLUDE_END | XCLUDE_START);
 
 			printf("ipredirect: %s\n", ip_redirect);
+		}
+
+		if (strncmp(buffer, "chance_type", strlen("chance_type") * sizeof(char)) == 0)
+		{
+			chance_type = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+
+			printf("Chance type: %s\n", chance_type);
+		}
+
+		if (strncmp(buffer, "chance_value", strlen("chance_value") * sizeof(char)) == 0)
+		{
+			char * chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+			chance_value = strtou16(chance_value_str);
+
+			printf("Chance value: %d\n", chance_value);
 		}
 
 		free(buffer);
@@ -71,7 +86,6 @@ int main(void)
 	}
 
 	free(buffer);
-	
 	
 	return 0;
 }
