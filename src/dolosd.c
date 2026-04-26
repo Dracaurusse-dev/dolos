@@ -28,6 +28,65 @@ uint8_t isvar(char *buffer, char *var)
 }
 
 
+void checkforvar(char *buffer, ConfigSettings *settings)
+{
+	if (isvar(buffer, "ip_redirect"))
+	{
+		settings->ip_redirect = cutstr(buffer, '=', '\n', XCLUDE_END | XCLUDE_START);
+
+		printf("ipredirect: %s\n", settings->ip_redirect);
+	}
+	else if (isvar(buffer, "chance_type"))
+	{
+		settings->chance_type = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+
+		printf("Chance type: %s\n", settings->chance_type);
+	}
+	else if (isvar(buffer, "chance_value"))
+	{
+		char *chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+		settings->chance_value = strtou16(chance_value_str);
+
+		printf("Chance value: %d\n", settings->chance_value);
+	}
+	else if (isvar(buffer, "port_redirect"))
+	{
+		char *portredirectstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+		settings->port_redirect = strtou16(portredirectstr);
+
+		printf("Port redirect: %d\n", settings->port_redirect);
+	}
+	else if (isvar(buffer, "ip_server"))
+	{
+		settings->ip_server = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+
+		printf("ipserver: %s\n", settings->ip_server);
+	}
+	else if  (isvar(buffer, "target"))
+	{
+		settings->target = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+
+		printf("target: %s\n", settings->target);
+	}
+	else if (isvar(buffer, "max_socket_connection"))
+	{
+		char *sockconnstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+
+		settings->max_socket_connection = strtou8(sockconnstr);
+
+		printf("max socket connection: %d\n", settings->max_socket_connection);
+	}
+	else if (isvar(buffer, "job_amnt"))
+	{
+		char *jobstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+
+		settings->job_amnt = strtou8(jobstr);
+
+		printf("Job number: %d\n", settings->job_amnt);
+	}
+}
+
+
 int main(void)
 {
 	ConfigSettings settings;
@@ -77,61 +136,7 @@ int main(void)
 			continue;
 		}
 
-		// TODO: maybe do another settings struct and pass it to a function to hide this if shit
-		if (isvar(buffer, "ip_redirect"))
-		{
-			settings.ip_redirect = cutstr(buffer, '=', '\n', XCLUDE_END | XCLUDE_START);
-
-			printf("ipredirect: %s\n", settings.ip_redirect);
-		}
-		else if (isvar(buffer, "chance_type"))
-		{
-			settings.chance_type = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-			printf("Chance type: %s\n", settings.chance_type);
-		}
-		else if (isvar(buffer, "chance_value"))
-		{
-			char *chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-			settings.chance_value = strtou16(chance_value_str);
-
-			printf("Chance value: %d\n", settings.chance_value);
-		}
-		else if (isvar(buffer, "port_redirect"))
-		{
-			char *portredirectstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-			settings.port_redirect = strtou16(portredirectstr);
-
-			printf("Port redirect: %d\n", settings.port_redirect);
-		}
-		else if (isvar(buffer, "ip_server"))
-		{
-			settings.ip_server = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-			printf("ipserver: %s\n", settings.ip_server);
-		}
-		else if  (isvar(buffer, "target"))
-		{
-			settings.target = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-			printf("target: %s\n", settings.target);
-		}
-		else if (isvar(buffer, "max_socket_connection"))
-		{
-			char *sockconnstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-			settings.max_socket_connection = strtou8(sockconnstr);
-
-			printf("max socket connection: %d\n", settings.max_socket_connection);
-		}
-		else if (isvar(buffer, "job_amnt"))
-		{
-			char *jobstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-			settings.job_amnt = strtou8(jobstr);
-
-			printf("Job number: %d\n", settings.job_amnt);
-		}
+		checkforvar(buffer, &settings);
 
 		free(buffer);
 		buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
