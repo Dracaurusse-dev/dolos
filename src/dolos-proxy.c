@@ -36,8 +36,10 @@ typedef struct
 	uint16_t  proxy_port;
 	uint16_t  website_port;
 	uint16_t  redirect_port;
+	uint16_t  active_port;
 	uint8_t   max_socket_conn;
 	uint8_t   chance_value;
+	uint8_t   count_value;
 	char 	  *chance_type;
 	char 	  *server_ip;
 	char 	  *redirect_ip;
@@ -90,6 +92,7 @@ uint8_t setvalue(char arg, char *value, Settings *settings)
 			break;
 		case 'w':
 			settings->website_port = strtou16(value);
+			settings->active_port = settings->website_port;
 			break;
 		case 'r':
 			settings->redirect_port = strtou16(value);
@@ -175,6 +178,45 @@ uint8_t parseargs(int argc, char **argv, Settings *settings)
 }
 
 
+uint8_t isgethtmlreq(char *req)
+{
+	return strncmp(req, "GET / ", strlen("GET / "));
+}
+
+
+uint8_t handlerd(Settings *settings)
+{
+	if (settings == NULL)
+	{
+		fprintf(stderr, "Pointer to NULL");
+		return 1;
+	}
+
+	if (strcmp(settings->chance_type, "%") == 0)
+	{
+		//TODO: handle % based random
+	}
+	else if (strcmp(settings->chance_type, "COUNT") == 0)
+	{
+		// If max count and curr count are equal, then user already has been redirected
+		// and the redirect should reset
+		if (settings->count_value == settings->chance_value) 
+		{
+			settings->count_value = 0;
+			settings->active_port = settings->website_port;
+		}
+
+		settings->count_value++;
+
+		// If max count and curr count are equal, then user should be redirected
+		if (settings->count_value == settings->chance_value)
+			settings->active_port = settings->redirect_port;
+	}
+
+	return 0;
+}
+
+
 int main(int argc, char **argv)
 {
 	int32_t clientsocket;
@@ -184,8 +226,10 @@ int main(int argc, char **argv)
 		.proxy_port 	 =	DEFAULT_PORT,
 		.website_port 	 = 	WEBSITE_DEFAULT_PORT,
 		.redirect_port 	 = 	REDIRECT_DEFAULT_PORT,
+		.active_port 	 = 	WEBSITE_DEFAULT_PORT,
 		.max_socket_conn =	DEFAULT_MAX_SOCKET_CONN,
 		.chance_value 	 = 	DEFAULT_CHANCE_VALUE,
+		.count_value 	 = 	0,
 		.chance_type  	 = 	DEFAULT_CHANCE_TYPE,
 		.server_ip 	 = 	DEFAULT_SERVER_IP,
 		.redirect_ip 	 =	DEFAULT_REDIRECT_IP,
@@ -209,18 +253,9 @@ int main(int argc, char **argv)
 			break;
 		}
 
-		int32_t res = connecttoapache(settings.website_port, &redirectsocket);
-		if (res != 0)
-		{
-			perror("Couldnt connect to apache");
-			clean(proxysocket.socket, redirectsocket.socket, clientsocket, NULL);
-			return 1;
-		}
-
 		// Read the request from the client	
 		ssize_t buflen;
 		char *buf = longrecv(clientsocket, &buflen);
-
 		if (buf == NULL)
 		{
 			clean(proxysocket.socket, redirectsocket.socket, clientsocket, buf);
@@ -228,6 +263,21 @@ int main(int argc, char **argv)
 		}
 
 		printf("client message: \n%s\n", buf);
+		
+		if (isgethtmlreq(buf) == 0)
+		{
+			// TODO: do the random operation (count or %) and change the port to redirect if random said it should
+			handlerd(&settings);
+			puts("Is a get html req");
+		}
+
+		int32_t res = connecttoapache(settings.active_port, &redirectsocket);
+		if (res != 0)
+		{
+			perror("Couldnt connect to apache");
+			clean(proxysocket.socket, redirectsocket.socket, clientsocket, NULL);
+			return 1;
+		}
 
 		// Send the packet to the server
 		int32_t sendres = send(redirectsocket.socket, buf, buflen, 0);
