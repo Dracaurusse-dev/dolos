@@ -1,2 +1,5 @@
+- Finish the daemon, for each bind it should fork a proxy instance
+- Try to set the daemon as a service for systemd, openrc and runit at least.
+- Add a flag/variable to do multi threading insteak of just forking each proxy instances
 - Add a github wiki or a doc or smth (see other github wikis) and a manpage maybe
 - change longrecv: read the header to know the size of the file in bytes and allocate enough bytes
