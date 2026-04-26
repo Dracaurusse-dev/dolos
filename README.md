@@ -13,6 +13,7 @@ the proxy's args are:
 -p: proxy port (default to 8080) \
 -c: maximum socket connection (default to 5) \
 -t: target ip (default to \*) (not implemented yet but will only redirect packets from the target) \
--T: chance type (default to count, % not implemented yet) \
--V: chance value (default to 100, not implemented yet)
+-j: job amount (default to 1, cant be 0 or less) (not implemented yet) \
+-T: chance type (default to count) \
+-V: chance value (default to 100)
 

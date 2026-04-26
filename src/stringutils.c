@@ -22,7 +22,7 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 	}
 
 	char *resbuf;
-	uint32_t excludevalues = (opts & XCLUDE_START) + (opts & XCLUDE_END);
+	uint32_t excludevalues = (opts & XCLUDE_START) + ((opts >> XCLUDE_END) & XCLUDE_END);
 	ssize_t startid = -1;
 	if (startchar == 0)
 		startid = XCLUDE_START & opts;
@@ -48,9 +48,18 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 			startid = i;
 
 			if (opts & CUTSTR_VERBOSE)
+			{
 				printf("excludevalues: %d\n", excludevalues);
+				printf("bufsize: %ld\n", strlen(buf) - i - excludevalues);
+			}
 
 			resbuf = (char *)malloc(strlen(buf) - i - excludevalues);
+			if (resbuf == NULL)
+			{
+				perror("Couldnt allocate memory for the res buffer in cutstr");
+				return NULL;
+			}
+
 			if (opts & XCLUDE_START)
 				startid++;
 
