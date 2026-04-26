@@ -11,9 +11,9 @@
 
 int main(void)
 {
-	char *ip_redirect;
+	char *ip_redirect, ip_server;
 	char *chance_type;
-	uint16_t chance_value;
+	uint16_t chance_value, portredirect;
 
 	FILE *fp = fopen("/etc/dolos.conf", "r");
 	if (fp == NULL)
@@ -75,10 +75,18 @@ int main(void)
 
 		if (strncmp(buffer, "chance_value", strlen("chance_value") * sizeof(char)) == 0)
 		{
-			char * chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+			char *chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 			chance_value = strtou16(chance_value_str);
 
 			printf("Chance value: %d\n", chance_value);
+		}
+
+		if (strncmp(buffer, "port_redirect", strlen("port_redirect") * sizeof(char)) == 0)
+		{
+			char *portredirectstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
+			portredirect = strtou16(portredirectstr);
+
+			printf("Port redirect: %d\n", portredirect);
 		}
 
 		free(buffer);
