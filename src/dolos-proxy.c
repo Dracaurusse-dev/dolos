@@ -118,7 +118,7 @@ uint8_t setvalue(char arg, char *value, Settings *settings)
 			break;
 
 		default:
-			fprintf(stderr, "Unknown argument passed to setvalue");
+			fprintf(stderr, "Unknown argument passed to setvalue: %c\n", arg);
 			return 1;
 	}
 
