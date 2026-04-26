@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -194,7 +195,10 @@ uint8_t handlerd(Settings *settings)
 
 	if (strcmp(settings->chance_type, "%") == 0)
 	{
-		//TODO: handle % based random
+		if ( rand() % 100 < settings->chance_value - 1)
+			settings->active_port = settings->redirect_port;
+		else
+			settings->active_port = settings->website_port;
 	}
 	else if (strcmp(settings->chance_type, "COUNT") == 0)
 	{
