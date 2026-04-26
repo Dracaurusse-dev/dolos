@@ -9,8 +9,8 @@ the proxy's args are:
 -I: server's ip (default to localhost) \
 -i: redirect ip (default to localhost) \
 -w: website port (default to 80) \
--r: redirect port (where the packets are redirected for the joke) (default to 8080) \
--p: proxy port (default to 8000) \
+-r: redirect port (where the packets are redirected for the joke) (default to 8000) \
+-p: proxy port (default to 8080) \
 -c: maximum socket connection (default to 5) \
 -t: target ip (default to \*) (not implemented yet but will only redirect packets from the target) \
 -T: chance type (default to count, % not implemented yet) \
