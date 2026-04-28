@@ -4,9 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 #define BUFFER_SIZE  255
+#define FLAG_COUNT 11
 
 
 typedef struct
@@ -22,9 +24,53 @@ typedef struct
 } ConfigSettings;
 
 
+typedef struct
+{
+	char *flag;
+	char *valuestr;
+	uint32_t valueint;
+	uint8_t useint;
+} Argument;
+
+
 uint8_t isvar(char *buffer, char *var)
 {
 	return strncmp(buffer, var, strlen(var) * sizeof(char)) == 0;
+}
+
+
+void genargs(char **argv, ConfigSettings settings, uint16_t proxyport, uint16_t serverport)
+{
+	Argument args[FLAG_COUNT] = 
+	{
+		{"/usr/bin/dolos-proxy", NULL, 0, 0},
+		{"-I", settings.ip_server, 0, 0},
+		{"-i", settings.ip_redirect, 0, 0},
+		{"-w", NULL, serverport, 1},
+		{"-r", NULL, settings.port_redirect, 1},
+		{"-p", NULL, proxyport, 1},
+		{"-c", NULL, settings.max_socket_connection, 1},
+		{"-t", settings.target, 0, 0},
+		{"-T", settings.chance_type, 0, 0},
+		{"-V", NULL, settings.chance_value, 1},
+		{"-j", NULL, settings.job_amnt, 1}
+	};
+
+	size_t j = 0;
+	for (size_t i = 0; i < FLAG_COUNT; i++)
+	{
+		if (args[i].useint)
+		{
+			args[i].valuestr = malloc(4 * sizeof(char));
+			sprintf(args[i].valuestr, "%d", args[i].valueint);
+		}
+		argv[j++] = args[i].flag;
+		if (args[i].valuestr == NULL)
+			continue;
+
+		argv[j++] = args[i].valuestr;
+	}
+	argv[j++] = 0;
 }
 
 
@@ -101,6 +147,8 @@ int main(void)
 	char *buffer = malloc(BUFFER_SIZE * sizeof(char));
 	while (fgets(buffer, BUFFER_SIZE, fp) != NULL)
 	{
+		if (strlen(buffer) <= 1)
+			continue;
 		buffer = removecomments(buffer, '#');
 		if (buffer == NULL)
 		{
@@ -121,10 +169,33 @@ int main(void)
 
 			printf("Proxyport is %d and serverport is %d\n", proxyport, serverport);
 
+			// TODO: later, use threads
+			pid_t pid = fork();
+			if (pid < 0)
+			{
+				perror("Fork failed for dolosd");
+
+				free(buffer);
+				buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+				return 1;
+			}
+			
+			if (pid == 0)
+			{
+				char *argv[FLAG_COUNT * 2];
+				genargs(argv, settings, proxyport, serverport);
+
+				execv(argv[0], argv);
+
+				free(buffer);
+				buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+				return 0;
+
+			}
+
 			free(buffer);
 			buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
 			continue;
-			//TODO: fork process for the  bind
 		}
 
 		buffer = trimspaces(buffer);

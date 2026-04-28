@@ -196,3 +196,4 @@ uint16_t strtou16(char *s)
 
 	return (uint16_t) strtoul(s, 0L, 10);
 }
+

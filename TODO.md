@@ -1,4 +1,3 @@
-- Finish the daemon, for each bind it should fork a proxy instance
 - Try to set the daemon as a service for systemd, openrc and runit at least.
 - Install script to compile + move executables to /usr/bin and create a service that should be enabled later
 - Handle multithreading and target flags
