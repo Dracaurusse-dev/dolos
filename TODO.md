@@ -1,4 +1,5 @@
 - Try to set the daemon as a service for systemd, openrc and runit at least.
+- Output to /var/log/dolos/ ; should at least output pids of every proxies
 - Install script to compile + move executables to /usr/bin and create a service that should be enabled later
 - Handle multithreading and target flags
 - Handle ip different than localhost
