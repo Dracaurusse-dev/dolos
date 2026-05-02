@@ -20,6 +20,8 @@ int32_t opensocket(Socket *newsocket, uint16_t port, uint8_t connection_amnt)
 		return 1;
 	}
 
+	newsocket->opt = 0;
+
 	int32_t options = SO_REUSEADDR | SO_REUSEPORT | SO_KEEPALIVE; 
 	int32_t optres = setsockopt(newsocket->socket, SOL_SOCKET, options, &newsocket->opt, sizeof(newsocket->opt));
 	if (optres != 0)
@@ -82,7 +84,6 @@ int32_t connectclient(int32_t proxysocket)
 	if (clientsocket == -1)
 	{
 		perror("Error connecting to client");
-		clean(proxysocket, -1, clientsocket, NULL);
 		return -1;
 	}
 
@@ -90,7 +91,7 @@ int32_t connectclient(int32_t proxysocket)
 }
 
 
-void clean(int32_t proxysocket, int32_t redirectsocket, int32_t clientsocket, char *buf)
+void clean(int32_t proxysocket, int32_t redirectsocket, int32_t clientsocket)
 {
 	if (proxysocket != -1)
 		shutdown(proxysocket, SHUT_RDWR);
@@ -98,6 +99,4 @@ void clean(int32_t proxysocket, int32_t redirectsocket, int32_t clientsocket, ch
 		shutdown(redirectsocket, SHUT_RDWR);
 	if (clientsocket != -1)
 		shutdown(clientsocket, SHUT_RDWR);
-	
-	free(buf);
 }	
