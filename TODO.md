@@ -5,3 +5,4 @@
 - Handle ip different than localhost
 - Add a github wiki or a doc or smth (see other github wikis) and a manpage maybe
 - change longrecv: read the header to know the size of the file in bytes and allocate enough bytes
+- Search for a safer way to send heavy payload, maybe http has a way to cut content in multiple msgs (to not use the whole payload's size at once, reducing instantaneous memory usage)
