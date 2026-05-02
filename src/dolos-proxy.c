@@ -52,7 +52,7 @@ char *longrecv(int32_t socket, ssize_t *lengthoutput)
 {
 	ssize_t length = BUFFER_SIZE;
 	ssize_t res;
-	char *buf = (char *)malloc(length);
+	char *buf = (char *)calloc(length, sizeof(char));
 	*lengthoutput=0;
 	uint16_t incrementamnt = 1024;
 	
@@ -66,7 +66,8 @@ char *longrecv(int32_t socket, ssize_t *lengthoutput)
 		}
 
 		length += incrementamnt;
-		buf = realloc(buf, length);
+		buf = (char *) realloc(buf, length * sizeof(char));
+		memset(buf, 0, length * sizeof(char));
 
 		if (buf == NULL)
 		{
@@ -76,7 +77,8 @@ char *longrecv(int32_t socket, ssize_t *lengthoutput)
 	}
 	while (res >= length-incrementamnt);
 
-	buf = realloc(buf, length);
+	buf = (char *) realloc(buf, length * sizeof(char));
+	memset(buf, 0, length * sizeof(char));
 	*lengthoutput = recv(socket, buf, length, 0);
 
 	printf("lengthoutput %ld\n", *lengthoutput);
@@ -270,7 +272,6 @@ int main(int argc, char **argv)
 		
 		if (isgethtmlreq(buf) == 0)
 		{
-			// TODO: do the random operation (count or %) and change the port to redirect if random said it should
 			handlerd(&settings);
 			puts("Is a get html req");
 		}
@@ -293,6 +294,7 @@ int main(int argc, char **argv)
 		}
 
 		// Receive the reply and send it to the client
+		memset(buf, 0, buflen);
 		buf = longrecv(redirectsocket.socket, &buflen);
 		if (buf == NULL)
 		{
