@@ -22,8 +22,9 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 	}
 
 	char *resbuf;
-	uint32_t excludevalues = (opts & XCLUDE_START) + ((opts >> XCLUDE_END) & XCLUDE_END);
+	uint32_t excludevalues = (opts & XCLUDE_START) + ((opts & XCLUDE_END) >> XCLUDE_END);
 	ssize_t startid = -1;
+	size_t bufsize;
 	if (startchar == 0)
 		startid = XCLUDE_START & opts;
 	
@@ -32,12 +33,15 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 		printf("startchar %c startid %ld \n", startchar, startid);
 
 		printf("startid before loop: %ld\n", startid);
+
+		printf("excludevalues %d\n", excludevalues);
 	}
 
 	size_t starti = 0;
 	if (startid != -1)
 	{
-		resbuf = (char *) malloc(strlen(buf) - excludevalues);
+		bufsize = strlen(buf) - excludevalues + 1;
+		resbuf = (char *) calloc(bufsize, sizeof(char));
 		starti = startid;
 	}
 	
@@ -50,10 +54,11 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 			if (opts & CUTSTR_VERBOSE)
 			{
 				printf("excludevalues: %d\n", excludevalues);
-				printf("bufsize: %ld\n", strlen(buf) - i - excludevalues);
+				printf("bufsize: %ld\n", strlen(buf) - i - excludevalues + 1);
 			}
 
-			resbuf = (char *)malloc(strlen(buf) - i - excludevalues);
+			bufsize = strlen(buf) - i - excludevalues + 1;
+			resbuf = (char *) calloc(bufsize, sizeof(char));
 			if (resbuf == NULL)
 			{
 				perror("Couldnt allocate memory for the res buffer in cutstr");
@@ -73,6 +78,8 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 		{
 			if (XCLUDE_END)
 				break;
+
+			resbuf[i - startid] = buf[i];
 		}
 
 		resbuf[i - startid] = buf[i];
@@ -83,15 +90,16 @@ char *cutstr(char *buf, char startchar, char endchar, uint8_t opts)
 			printf("buf[i] = resbuf[i - startid] = %c\n", buf[i]);
 			printf("Current resbuf: %s\n", resbuf);
 		}
-
-		
 	}
+
+	resbuf[bufsize - 1] = 0;
 
 	if (opts & CUTSTR_VERBOSE)
 		printf("resbuf before return: %s\n", resbuf);
 	
 	return resbuf;
 }
+
 
 char *trimspaces(char *s)
 {
@@ -116,7 +124,7 @@ char *trimspaces(char *s)
 	}
 
 	size_t resstrsize = strlen(s) - spaceamnt + 1;
-	char *resstr = (char *)malloc(resstrsize);
+	char *resstr = (char *) calloc(resstrsize, sizeof(char));
 	
 	size_t inputid = 0;
 	size_t outputid = 0;
@@ -138,7 +146,7 @@ char *removecomments(char *s, const char c)
 		return NULL;
 	
 	ssize_t realsize = 0;
-	char *res = (char *) malloc(sizeof(char));
+	char *res = (char *) calloc(1, sizeof(char));
 
 	if (res == NULL)
 	{
@@ -150,7 +158,7 @@ char *removecomments(char *s, const char c)
 	{
 		realsize++;
 
-		res = realloc(res, realsize);
+		res = realloc(res, (realsize + 1) * sizeof(char));
 		if (res == NULL)
 		{
 			fprintf(stderr, "Couldnt reallocate memory when removing comments");
@@ -165,8 +173,9 @@ char *removecomments(char *s, const char c)
 		}
 		
 		res[realsize - 1] = *x;
-
 	}
+
+	res[realsize] = 0;
 
 	return res;
 }

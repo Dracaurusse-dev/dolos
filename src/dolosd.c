@@ -39,6 +39,15 @@ uint8_t isvar(char *buffer, char *var)
 }
 
 
+void freesettings(ConfigSettings settings)
+{
+	free(settings.ip_redirect);
+	free(settings.ip_server);
+	free(settings.target);
+	free(settings.chance_type);
+}
+
+
 void genargs(char **argv, ConfigSettings settings, uint16_t proxyport, uint16_t serverport)
 {
 	Argument args[FLAG_COUNT] = 
@@ -61,7 +70,7 @@ void genargs(char **argv, ConfigSettings settings, uint16_t proxyport, uint16_t 
 	{
 		if (args[i].useint)
 		{
-			args[i].valuestr = malloc(4 * sizeof(char));
+			args[i].valuestr = (char *) calloc(8, sizeof(char));
 			sprintf(args[i].valuestr, "%d", args[i].valueint);
 		}
 		argv[j++] = args[i].flag;
@@ -92,6 +101,7 @@ void checkforvar(char *buffer, ConfigSettings *settings)
 	{
 		char *chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 		settings->chance_value = strtou16(chance_value_str);
+		free(chance_value_str);
 
 		printf("Chance value: %d\n", settings->chance_value);
 	}
@@ -99,6 +109,7 @@ void checkforvar(char *buffer, ConfigSettings *settings)
 	{
 		char *portredirectstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 		settings->port_redirect = strtou16(portredirectstr);
+		free(portredirectstr);
 
 		printf("Port redirect: %d\n", settings->port_redirect);
 	}
@@ -119,6 +130,7 @@ void checkforvar(char *buffer, ConfigSettings *settings)
 		char *sockconnstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 
 		settings->max_socket_connection = strtou8(sockconnstr);
+		free(sockconnstr);
 
 		printf("max socket connection: %d\n", settings->max_socket_connection);
 	}
@@ -127,6 +139,7 @@ void checkforvar(char *buffer, ConfigSettings *settings)
 		char *jobstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 
 		settings->job_amnt = strtou8(jobstr);
+		free(jobstr);
 
 		printf("Job number: %d\n", settings->job_amnt);
 	}
@@ -144,16 +157,24 @@ int main(void)
 		return 1;
 	}
 
-	char *buffer = malloc(BUFFER_SIZE * sizeof(char));
+	char *buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 	while (fgets(buffer, BUFFER_SIZE, fp) != NULL)
 	{
 		if (strlen(buffer) <= 1)
+		{
+			// Can memset instead of reallocating since no memory operation really happened
+			memset(buffer, 0, BUFFER_SIZE * sizeof(char));
 			continue;
-		buffer = removecomments(buffer, '#');
+		}
+
+		char *tmpbuf = strdup(buffer);
+		free(buffer);
+		buffer = removecomments(tmpbuf, '#');
+		free(tmpbuf);
 		if (buffer == NULL)
 		{
 			free(buffer);
-			buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+			buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 			continue;
 		}
 
@@ -167,6 +188,10 @@ int main(void)
 			uint16_t proxyport  = strtou16(proxyportstr);
 			uint16_t serverport = strtou16(serverportstr);
 
+			free(proxyportstr);
+			free(serverportstr);
+			free(ports);
+
 			printf("Proxyport is %d and serverport is %d\n", proxyport, serverport);
 
 			// TODO: later, use threads
@@ -176,7 +201,9 @@ int main(void)
 				perror("Fork failed for dolosd");
 
 				free(buffer);
-				buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+				freesettings(settings);
+				fclose(fp);
+				//buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 				return 1;
 			}
 			
@@ -188,32 +215,39 @@ int main(void)
 				execv(argv[0], argv);
 
 				free(buffer);
-				buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+				freesettings(settings);
+				fclose(fp);
+				//buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 				return 0;
 
 			}
 
 			free(buffer);
-			buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+			buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 			continue;
 		}
 
-		buffer = trimspaces(buffer);
+		tmpbuf = strdup(buffer);
+		free(buffer);
+		buffer = trimspaces(tmpbuf);
+		free(tmpbuf);
 		if (buffer == NULL)
 		{
 			fprintf(stderr, "buffer is null after triming\n");
 			free(buffer);
-			buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+			buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 			continue;
 		}
 
 		checkforvar(buffer, &settings);
 
 		free(buffer);
-		buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
+		buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 	}
 
+	freesettings(settings);
 	free(buffer);
+	fclose(fp);
 	
 	return 0;
 }

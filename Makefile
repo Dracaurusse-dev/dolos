@@ -2,7 +2,7 @@ CFLAGS= -Wall -Wextra -Werror
 
 all: proxy daemon
 
-valgrind: ${CFLAGS} += -g
+valgrind: CFLAGS += -g
 valgrind: all
 
 proxy: bin/connect.o bin/dolos-proxy.o src/connect.h bin/stringutils.o
