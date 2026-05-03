@@ -15,6 +15,5 @@ typedef struct {
 int32_t opensocket(Socket *socket, uint16_t port, uint8_t connection_amnt);
 int32_t connecttoapache(uint32_t port, Socket *redirect);
 int32_t connectclient(int32_t proxysocket);
-void clean(int32_t proxysocket, int32_t redirectsocket, int32_t clientsocket);
 
 #endif  // CONNECT_H

@@ -90,13 +90,3 @@ int32_t connectclient(int32_t proxysocket)
 	return clientsocket;
 }
 
-
-void clean(int32_t proxysocket, int32_t redirectsocket, int32_t clientsocket)
-{
-	if (proxysocket != -1)
-		shutdown(proxysocket, SHUT_RDWR);
-	if (redirectsocket != -1)
-		shutdown(redirectsocket, SHUT_RDWR);
-	if (clientsocket != -1)
-		shutdown(clientsocket, SHUT_RDWR);
-}	

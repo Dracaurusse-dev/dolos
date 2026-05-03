@@ -182,13 +182,18 @@ uint8_t parseargs(int argc, char **argv, Settings *settings)
 }
 
 
-uint8_t isgethtmlreq(char *req)
+uint8_t is_get_html_req(char *req)
 {
-	return strncmp(req, "GET / ", strlen("GET / "));
+	if (!strncmp(req, "GET /", strlen("GET /")))
+		return true;		
+	if (!strncmp(req, "GET /index", strlen("GET /index")))
+		return true;
+
+	return false;
 }
 
 
-uint8_t handlerd(Settings *settings)
+uint8_t handlerandom(Settings *settings)
 {
 	if (settings == NULL)
 	{
@@ -243,7 +248,12 @@ int main(int argc, char **argv)
 		.target 	 =	DEFAULT_TARGET
 	};
 
-	parseargs(argc, argv, &settings);
+	uint8_t argres = parseargs(argc, argv, &settings);
+	if (argres != PARSED_SUCCESSFULLY)
+	{
+		fprintf(stderr, "Failed args parsing with error %d\n", argres);
+		return 1;
+	}
 
 	int32_t openres = opensocket(&proxysocket, settings.proxy_port, settings.max_socket_conn);
 	if (openres == 1)
@@ -265,23 +275,35 @@ int main(int argc, char **argv)
 		char *reqbuf = longrecv(clientsocket, &reqbuflen);
 		if (reqbuf == NULL)
 		{
-			clean(proxysocket.socket, redirectsocket.socket, clientsocket);
+			shutdown(proxysocket.socket, SHUT_RDWR);
+			shutdown(redirectsocket.socket, SHUT_RDWR);
+			shutdown(clientsocket, SHUT_RDWR);
 			free(reqbuf);
 			return 1;
 		}
 
 		//printf("client message: \n%s\n", reqbuf);
 		
-		if (isgethtmlreq(reqbuf) == 0)
+		if (is_get_html_req(reqbuf) == 0)
 		{
-			handlerd(&settings);
+			uint8_t rdres = handlerandom(&settings);
+			if (rdres != 0)
+			{
+				printf("cant handle random");
+				shutdown(proxysocket.socket, SHUT_RDWR);
+				shutdown(redirectsocket.socket, SHUT_RDWR);
+				shutdown(clientsocket, SHUT_RDWR);
+				return 1;
+			}
 		}
 
 		int32_t res = connecttoapache(settings.active_port, &redirectsocket);
 		if (res != 0)
 		{
 			perror("Couldnt connect to apache");
-			clean(proxysocket.socket, redirectsocket.socket, clientsocket);
+			shutdown(proxysocket.socket, SHUT_RDWR);
+			shutdown(redirectsocket.socket, SHUT_RDWR);
+			shutdown(clientsocket, SHUT_RDWR);
 			free(reqbuf);
 			return 1;
 		}
@@ -291,7 +313,9 @@ int main(int argc, char **argv)
 		if (sendres == -1)
 		{
 			perror("Couldnt send to server with redirectsocket");
-			clean(proxysocket.socket, redirectsocket.socket, clientsocket);
+			shutdown(proxysocket.socket, SHUT_RDWR);
+			shutdown(redirectsocket.socket, SHUT_RDWR);
+			shutdown(clientsocket, SHUT_RDWR);
 			free(reqbuf);
 			return 1;
 		}
@@ -303,7 +327,9 @@ int main(int argc, char **argv)
 		char *repbuf = longrecv(redirectsocket.socket, &repbuflen);
 		if (repbuf == NULL)
 		{
-			clean(proxysocket.socket, redirectsocket.socket, clientsocket);
+			shutdown(proxysocket.socket, SHUT_RDWR);
+			shutdown(redirectsocket.socket, SHUT_RDWR);
+			shutdown(clientsocket, SHUT_RDWR);
 			free(repbuf);
 			return 1;
 		}
@@ -313,13 +339,16 @@ int main(int argc, char **argv)
 		if (sendres == -1)
 		{
 			perror("Couldnt send to client with clientsocket");
-			clean(proxysocket.socket, redirectsocket.socket, clientsocket);
+			shutdown(proxysocket.socket, SHUT_RDWR);
+			shutdown(redirectsocket.socket, SHUT_RDWR);
+			shutdown(clientsocket, SHUT_RDWR);
 			free(repbuf);
 			return 1;
 		}
 
 		// Don't close proxysocket since it might be needed on the next iteration
-		clean(-1, redirectsocket.socket, clientsocket);
+		shutdown(redirectsocket.socket, SHUT_RDWR);
+		shutdown(clientsocket, SHUT_RDWR);
 		free(repbuf);
 	}
 	
