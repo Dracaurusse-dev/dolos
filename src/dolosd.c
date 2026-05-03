@@ -146,6 +146,33 @@ void checkforvar(char *buffer, ConfigSettings *settings)
 }
 
 
+uint8_t savepid(pid_t pid, char *path)
+{
+	FILE *fp = fopen(path, "w");
+	if (fp == NULL)
+	{
+		perror("couldnt open file");
+		return 1;
+	}
+
+	char *buf = (char *) calloc(8, sizeof(char));
+	if (buf == NULL)
+	{
+		perror("Couldnt allocate memory");
+		fclose(fp);
+		return 1;
+	}
+	sprintf(buf, "%d", pid);
+	
+	fwrite(buf, sizeof(char), strlen(buf), fp);
+
+	free(buf);
+	fclose(fp);
+
+	return 0;
+}
+
+
 int main(void)
 {
 	ConfigSettings settings;
@@ -211,6 +238,19 @@ int main(void)
 			{
 				char *argv[FLAG_COUNT * 2];
 				genargs(argv, settings, proxyport, serverport);
+				
+				char *path = (char *) calloc(64, sizeof(char));
+				sprintf(path, "/tmp/dolosd.d/%d->%d.pid", proxyport, serverport);
+				uint8_t saveres = savepid(getpid(), path);
+				free(path);
+				if (saveres != 0)
+				{
+					perror("Couldnt save pid, aborting");
+					free(buffer);
+					freesettings(settings);
+					fclose(fp);
+					return 1;
+				}
 
 				execv(argv[0], argv);
 

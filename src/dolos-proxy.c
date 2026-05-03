@@ -83,7 +83,6 @@ char *longrecv(int32_t socket, ssize_t *lengthoutput)
 	buf = (char *) calloc(length, sizeof(char));
 	*lengthoutput = recv(socket, buf, length, 0);
 
-	printf("lengthoutput %ld\n", *lengthoutput);
 	return buf;
 }
 
@@ -271,12 +270,11 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		printf("client message: \n%s\n", reqbuf);
+		//printf("client message: \n%s\n", reqbuf);
 		
 		if (isgethtmlreq(reqbuf) == 0)
 		{
 			handlerd(&settings);
-			puts("Is a get html req");
 		}
 
 		int32_t res = connecttoapache(settings.active_port, &redirectsocket);
@@ -309,7 +307,7 @@ int main(int argc, char **argv)
 			free(repbuf);
 			return 1;
 		}
-		printf("redirect msg: \n%s\n", repbuf);
+		//printf("redirect msg: \n%s\n", repbuf);
 
 		send(clientsocket, repbuf, repbuflen, 0);
 		if (sendres == -1)
