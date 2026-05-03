@@ -253,8 +253,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	uint8_t loopcount = 0;
-	while (loopcount++ < 3)
+	while (1)
 	{
 		clientsocket = connectclient(proxysocket.socket);
 		if (clientsocket == -1)
