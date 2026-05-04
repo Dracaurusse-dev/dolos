@@ -1,8 +1,14 @@
 [Unit]
 Description=Daemon for dolos proxy
+DefaultDependencies=no
+After=network.target
 
 [Service]
-ExecStart=/bin/bash /etc/systemd/system/dolosd.d/systemd-start.sh
-ExecStop=/bin/bash /etc/systemd/system/dolosd.d/poststop.sh
+Type=forking
+ExecStart=/usr/bin/dolosd
+ExecStartPre=/etc/systemd/system/dolosd.d/prestart.sh
+RemainAfterExit=yes
+ExecStop=/etc/systemd/system/dolosd.d/poststop.sh
 
-
+[Install]
+WantedBy=default.target

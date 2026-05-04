@@ -29,7 +29,7 @@ bin/connect.o: src/connect.c
 	mkdir -p bin
 	gcc -c src/connect.c ${CFLAGS} -o bin/connect.o
 
-install-systemd: all services/*
+install-systemd: base-service services/*
 	cp bin/dolosd /usr/bin/dolosd
 	cp bin/dolos-proxy /usr/bin/dolos-proxy
 	cp dolos.conf /etc/dolos.conf
@@ -48,10 +48,7 @@ install-systemd: all services/*
 	chmod +x ${SERVICE_PATH_SYSTEMD}poststop.sh
 
 # TODO: make install-runit install-openrc install-systemd 
-install-openrc: all services/*
-	cp bin/dolosd /usr/bin/dolosd
-	cp bin/dolos-proxy /usr/bin/dolos-proxy
-	cp dolos.conf /etc/dolos.conf
+install-openrc: base-service services/*
 	mkdir -p ${SERVICE_PATH_OPENRC}
 	cp services/dolosd-openrc.sh /etc/init.d/dolosd
 	chown root:root /etc/init.d/dolosd
@@ -62,6 +59,11 @@ install-openrc: all services/*
 	cp services/poststop.sh ${SERVICE_PATH_OPENRC}
 	chown root:root ${SERVICE_PATH_OPENRC}poststop.sh
 	chmod +x ${SERVICE_PATH_OPENRC}poststop.sh
+
+base-service: all dolos.conf
+	cp bin/dolosd /usr/bin/dolosd
+	cp bin/dolos-proxy /usr/bin/dolos-proxy
+	cp dolos.conf /etc/dolos.conf
 
 clean:
 	rm bin/*
