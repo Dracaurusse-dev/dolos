@@ -189,9 +189,9 @@ uint8_t parseargs(int argc, char **argv, Settings *settings)
 
 uint8_t is_get_html_req(char *req)
 {
-	if (!strncmp(req, "GET /", strlen("GET /")))
+	if (strncmp(req, "GET /", strlen("GET /")) == 0)
 		return 1;		
-	if (!strncmp(req, "GET /index", strlen("GET /index")))
+	if (!strncmp(req, "GET /index", strlen("GET /index")) == 0)
 		return 1;
 
 	return 0;
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 
 		//printf("client message: \n%s\n", reqbuf);
 		
-		if (is_get_html_req(reqbuf) == 0)
+		if (is_get_html_req(reqbuf))
 		{
 			uint8_t rdres = handlerandom(&settings);
 			if (rdres != 0)
