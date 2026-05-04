@@ -1,8 +1,6 @@
-- Try to set the daemon as a service for systemd, openrc and runit at least.
-- Output to /var/log/dolos/ ; should at least output pids of every proxies
-- Install script to compile + move executables to /usr/bin and create a service that should be enabled later
-- Handle multithreading and target flags
-- Handle ip different than localhost
+- Output to /var/log/dolos/
+- Handle ip, job and target flags
+- Setup runit service
 - Add a github wiki or a doc or smth (see other github wikis) and a manpage maybe
 - change longrecv: read the header to know the size of the file in bytes and allocate enough bytes
 - Search for a safer way to send heavy payload, maybe http has a way to cut content in multiple msgs (to not use the whole payload's size at once, reducing instantaneous memory usage)

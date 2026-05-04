@@ -47,7 +47,6 @@ install-systemd: base-service services/*
 	chown root:root ${SERVICE_PATH_SYSTEMD}poststop.sh
 	chmod +x ${SERVICE_PATH_SYSTEMD}poststop.sh
 
-# TODO: make install-runit install-openrc install-systemd 
 install-openrc: base-service services/*
 	mkdir -p ${SERVICE_PATH_OPENRC}
 	cp services/dolosd-openrc.sh /etc/init.d/dolosd
