@@ -26,6 +26,7 @@
 #define DEFAULT_CHANCE_TYPE	"COUNT"
 #define DEFAULT_CHANCE_VALUE	100
 #define DEFAULT_MAX_SOCKET_CONN 5
+#define DEFAULT_JOB_AMNT 	1
 
 #define PARSED_SUCCESSFULLY 	1
 #define NO_ARGS_PASSED 		2
@@ -41,6 +42,7 @@ typedef struct
 	uint8_t   max_socket_conn;
 	uint8_t   chance_value;
 	uint8_t   count_value;
+	uint8_t   job_amnt;
 	char 	  *chance_type;
 	char 	  *server_ip;
 	char 	  *redirect_ip;
@@ -123,6 +125,9 @@ uint8_t setvalue(char arg, char *value, Settings *settings)
 		case 'V':
 			settings->chance_value = strtou8(value);
 			break;
+		case 'j':
+			settings->job_amnt = strtou8(value);
+			break;
 
 		default:
 			fprintf(stderr, "Unknown argument passed to setvalue: %c\n", arg);
@@ -185,11 +190,11 @@ uint8_t parseargs(int argc, char **argv, Settings *settings)
 uint8_t is_get_html_req(char *req)
 {
 	if (!strncmp(req, "GET /", strlen("GET /")))
-		return true;		
+		return 1;		
 	if (!strncmp(req, "GET /index", strlen("GET /index")))
-		return true;
+		return 1;
 
-	return false;
+	return 0;
 }
 
 
@@ -245,7 +250,8 @@ int main(int argc, char **argv)
 		.chance_type  	 = 	DEFAULT_CHANCE_TYPE,
 		.server_ip 	 = 	DEFAULT_SERVER_IP,
 		.redirect_ip 	 =	DEFAULT_REDIRECT_IP,
-		.target 	 =	DEFAULT_TARGET
+		.target 	 =	DEFAULT_TARGET,
+		.job_amnt 	 = 	DEFAULT_JOB_AMNT,
 	};
 
 	uint8_t argres = parseargs(argc, argv, &settings);

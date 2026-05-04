@@ -1,0 +1,8 @@
+[Unit]
+Description=Daemon for dolos proxy
+
+[Service]
+ExecStart=/bin/bash /etc/systemd/system/dolosd.d/systemd-start.sh
+ExecStop=/bin/bash /etc/systemd/system/dolosd.d/poststop.sh
+
+

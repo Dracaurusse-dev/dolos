@@ -1,5 +1,6 @@
 CFLAGS= -Wall -Wextra -Werror
 SERVICE_PATH_OPENRC = /etc/init.d/dolosd.d/
+SERVICE_PATH_SYSTEMD = /etc/systemd/system/dolosd.d/
 
 all: proxy daemon
 
@@ -28,10 +29,29 @@ bin/connect.o: src/connect.c
 	mkdir -p bin
 	gcc -c src/connect.c ${CFLAGS} -o bin/connect.o
 
+install-systemd: all services/*
+	cp bin/dolosd /usr/bin/dolosd
+	cp bin/dolos-proxy /usr/bin/dolos-proxy
+	cp dolos.conf /etc/dolos.conf
+	mkdir -p ${SERVICE_PATH_SYSTEMD}
+	cp services/dolosd-systemd.service /etc/systemd/system/dolosd.service
+	chown root:root /etc/systemd/system/dolosd.service
+	chmod +x /etc/systemd/system/dolosd.service
+	cp services/prestart.sh ${SERVICE_PATH_SYSTEMD}
+	chown root:root ${SERVICE_PATH_SYSTEMD}prestart.sh
+	chmod +x ${SERVICE_PATH_SYSTEMD}prestart.sh
+	cp services/systemd-start.sh ${SERVICE_PATH_SYSTEMD}
+	chown root:root ${SERVICE_PATH_SYSTEMD}systemd-start.sh
+	chmod +x ${SERVICE_PATH_SYSTEMD}systemd-start.sh
+	cp services/poststop.sh ${SERVICE_PATH_SYSTEMD}
+	chown root:root ${SERVICE_PATH_SYSTEMD}poststop.sh
+	chmod +x ${SERVICE_PATH_SYSTEMD}poststop.sh
+
 # TODO: make install-runit install-openrc install-systemd 
 install-openrc: all services/*
 	cp bin/dolosd /usr/bin/dolosd
 	cp bin/dolos-proxy /usr/bin/dolos-proxy
+	cp dolos.conf /etc/dolos.conf
 	mkdir -p ${SERVICE_PATH_OPENRC}
 	cp services/dolosd-openrc.sh /etc/init.d/dolosd
 	chown root:root /etc/init.d/dolosd
