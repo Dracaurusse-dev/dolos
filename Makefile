@@ -30,9 +30,6 @@ bin/connect.o: src/connect.c
 	gcc -c src/connect.c ${CFLAGS} -o bin/connect.o
 
 install-systemd: base-service services/*
-	cp bin/dolosd /usr/bin/dolosd
-	cp bin/dolos-proxy /usr/bin/dolos-proxy
-	cp dolos.conf /etc/dolos.conf
 	mkdir -p ${SERVICE_PATH_SYSTEMD}
 	cp services/dolosd-systemd.service /etc/systemd/system/dolosd.service
 	chown root:root /etc/systemd/system/dolosd.service

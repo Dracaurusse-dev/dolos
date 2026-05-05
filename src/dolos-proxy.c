@@ -79,8 +79,6 @@ char *longrecv(int32_t socket, ssize_t *lengthoutput)
 	}
 	while (res >= length-incrementamnt);
 
-	//buf = (char *) realloc(buf, length * sizeof(char));
-	//memset(buf, 0, length * sizeof(char));
 	free(buf);
 	buf = (char *) calloc(length, sizeof(char));
 	*lengthoutput = recv(socket, buf, length, 0);
@@ -142,7 +140,6 @@ uint8_t parseargs(int argc, char **argv, Settings *settings)
 {
 	if (argc == 1)
 	{
-		puts("no argument passed, using default values");
 		return NO_ARGS_PASSED;
 	}
 
@@ -189,9 +186,9 @@ uint8_t parseargs(int argc, char **argv, Settings *settings)
 
 uint8_t is_get_html_req(char *req)
 {
-	if (strncmp(req, "GET / ", strlen("GET / ")) == 0)
+	if (bufstartswith(req, "GET / "))
 		return 1;
-	if (strncmp(req, "GET /index", strlen("GET /index")) == 0)
+	if (bufstartswith(req, "GET /index"))
 		return 1;
 
 	return 0;
@@ -206,14 +203,14 @@ uint8_t handlerandom(Settings *settings)
 		return 1;
 	}
 
-	if (strcmp(settings->chance_type, "%") == 0)
+	if (bufstartswith(settings->chance_type, "%"))
 	{
 		if ( rand() % 100 < settings->chance_value - 1)
 			settings->active_port = settings->redirect_port;
 		else
 			settings->active_port = settings->website_port;
 	}
-	else if (strcmp(settings->chance_type, "COUNT") == 0)
+	else if (bufstartswith(settings->chance_type, "COUNT"))
 	{
 		// If max count and curr count are equal, then user already has been redirected
 		// and the redirect should reset
@@ -289,11 +286,8 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		printf("client message: \n%s\n", reqbuf);
-		
 		if (is_get_html_req(reqbuf))
 		{
-			puts("GET HTML REQ ----------------------------------------");
 			uint8_t rdres = handlerandom(&settings);
 			if (rdres != 0)
 			{
@@ -327,10 +321,9 @@ int main(int argc, char **argv)
 			free(reqbuf);
 			return 1;
 		}
-
-		// Receive the reply and send it to the client
 		free(reqbuf);
 
+		// Receive the reply and send it to the client
 		ssize_t repbuflen;
 		char *repbuf = longrecv(redirectsocket.socket, &repbuflen);
 		if (repbuf == NULL)
@@ -341,7 +334,6 @@ int main(int argc, char **argv)
 			free(repbuf);
 			return 1;
 		}
-		printf("redirect msg: \n%s\n", repbuf);
 
 		send(clientsocket, repbuf, repbuflen, 0);
 		if (sendres == -1)

@@ -33,12 +33,6 @@ typedef struct
 } Argument;
 
 
-uint8_t isvar(char *buffer, char *var)
-{
-	return strncmp(buffer, var, strlen(var) * sizeof(char)) == 0;
-}
-
-
 void freesettings(ConfigSettings settings)
 {
 	free(settings.ip_redirect);
@@ -85,63 +79,47 @@ void genargs(char **argv, ConfigSettings settings, uint16_t proxyport, uint16_t 
 
 void checkforvar(char *buffer, ConfigSettings *settings)
 {
-	if (isvar(buffer, "ip_redirect"))
+	if (bufstartswith(buffer, "ip_redirect"))
 	{
 		settings->ip_redirect = cutstr(buffer, '=', '\n', XCLUDE_END | XCLUDE_START);
-
-		printf("ipredirect: %s\n", settings->ip_redirect);
 	}
-	else if (isvar(buffer, "chance_type"))
+	else if (bufstartswith(buffer, "chance_type"))
 	{
 		settings->chance_type = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-		printf("Chance type: %s\n", settings->chance_type);
 	}
-	else if (isvar(buffer, "chance_value"))
+	else if (bufstartswith(buffer, "chance_value"))
 	{
 		char *chance_value_str = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 		settings->chance_value = strtou16(chance_value_str);
 		free(chance_value_str);
-
-		printf("Chance value: %d\n", settings->chance_value);
 	}
-	else if (isvar(buffer, "port_redirect"))
+	else if (bufstartswith(buffer, "port_redirect"))
 	{
 		char *portredirectstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 		settings->port_redirect = strtou16(portredirectstr);
 		free(portredirectstr);
-
-		printf("Port redirect: %d\n", settings->port_redirect);
 	}
-	else if (isvar(buffer, "ip_server"))
+	else if (bufstartswith(buffer, "ip_server"))
 	{
 		settings->ip_server = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-		printf("ipserver: %s\n", settings->ip_server);
 	}
-	else if  (isvar(buffer, "target"))
+	else if  (bufstartswith(buffer, "target"))
 	{
 		settings->target = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
-
-		printf("target: %s\n", settings->target);
 	}
-	else if (isvar(buffer, "max_socket_connection"))
+	else if (bufstartswith(buffer, "max_socket_connection"))
 	{
 		char *sockconnstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 
 		settings->max_socket_connection = strtou8(sockconnstr);
 		free(sockconnstr);
-
-		printf("max socket connection: %d\n", settings->max_socket_connection);
 	}
-	else if (isvar(buffer, "job_amnt"))
+	else if (bufstartswith(buffer, "job_amnt"))
 	{
 		char *jobstr = cutstr(buffer, '=', '\n', XCLUDE_START | XCLUDE_END);
 
 		settings->job_amnt = strtou8(jobstr);
 		free(jobstr);
-
-		printf("Job number: %d\n", settings->job_amnt);
 	}
 }
 
@@ -206,7 +184,7 @@ int main(void)
 		}
 
 		
-		if (isvar(buffer, "bind"))
+		if (bufstartswith(buffer, "bind"))
 		{
 			char *ports = cutstr(buffer, ' ', '\n', XCLUDE_END | XCLUDE_START);
 
@@ -219,8 +197,6 @@ int main(void)
 			free(serverportstr);
 			free(ports);
 
-			printf("Proxyport is %d and serverport is %d\n", proxyport, serverport);
-
 			// TODO: later, use threads
 			pid_t pid = fork();
 			if (pid < 0)
@@ -230,7 +206,6 @@ int main(void)
 				free(buffer);
 				freesettings(settings);
 				fclose(fp);
-				//buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 				return 1;
 			}
 			
@@ -257,7 +232,6 @@ int main(void)
 				free(buffer);
 				freesettings(settings);
 				fclose(fp);
-				//buffer = (char *) calloc(BUFFER_SIZE, sizeof(char));
 				return 0;
 
 			}

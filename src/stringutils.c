@@ -181,6 +181,23 @@ char *removecomments(char *s, const char c)
 }
 
 
+uint8_t bufstartswith(char *buf, char *str)
+{
+	if (buf == NULL)
+	{
+		perror("buf is null in bufstartswith");
+		return 0;
+	}
+
+	if (str == NULL)
+	{
+		perror("str is null in bufstartswith");
+		return 0;
+	}
+
+	return strncmp(buf, str, strlen(str)) == 0;
+}
+
 uint8_t strtou8(char *s)
 {
 	char *c;

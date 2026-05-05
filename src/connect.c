@@ -41,8 +41,6 @@ int32_t opensocket(Socket *newsocket, uint16_t port, uint8_t connection_amnt)
 		return 1;
 	}
 
-	//printf("Successfully bound to port %u\n", port);
-
 	if (listen(newsocket->socket, connection_amnt) < 0)
 	{
 		shutdown(newsocket->socket, SHUT_RDWR);
